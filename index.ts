@@ -3,7 +3,7 @@
  */
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { Container, Text, Input, DynamicBorder, type SelectItem } from "@mariozechner/pi-tui";
+import { Container, Text, Input, DynamicBorder } from "@mariozechner/pi-coding-agent";
 
 // Minimal SelectList implementation for the picker
 class SimpleSelectList {
