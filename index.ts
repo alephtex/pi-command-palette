@@ -1,5 +1,5 @@
 /**
- * pi-command-palette - Simple version using ctx.ui.select
+ * pi-command-palette - Simple version
  */
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
@@ -8,14 +8,8 @@ export default function (pi: ExtensionAPI) {
 	pi.registerShortcut("ctrl+p", {
 		description: "Open command palette",
 		handler: async (ctx) => {
-			const commands = ctx.getCommands();
-			const names = commands.map((c) => c.name);
-			
-			const selected = await ctx.ui.select("Command Palette", names);
-			
-			if (selected) {
-				ctx.sendUserMessage(`/${selected}`);
-			}
+			// Just send "/" to trigger the built-in slash command autocomplete
+			ctx.sendUserMessage("/");
 		},
 	});
 }
