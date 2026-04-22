@@ -18,8 +18,8 @@ export default function (pi: ExtensionAPI) {
 	pi.registerShortcut("ctrl+p", {
 		description: "Open command palette (same as typing /)",
 		handler: async (ctx) => {
-			// Send "/" to trigger the slash command menu
-			ctx.sendUserMessage("/");
+			// Insert "/" into the editor which triggers slash command autocomplete
+			ctx.ui.pasteToEditor("/");
 		},
 	});
 }
