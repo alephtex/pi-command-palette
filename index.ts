@@ -1,7 +1,8 @@
 /**
  * pi-command-palette
  * 
- * Opens the slash command menu (same as typing "/") via Ctrl+P shortcut.
+ * Opens the slash command menu via Ctrl+P shortcut.
+ * Uses ctx.ui.custom() to build a simple command picker.
  * 
  * Requires keybindings.json to rebind built-in shortcuts to free Ctrl+P:
  * {
@@ -15,19 +16,25 @@
  */
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import { Container, Text, DynamicBorder } from "@mariozechner/pi-tui";
 
 export default function (pi: ExtensionAPI) {
 	pi.registerShortcut("ctrl+p", {
-		description: "Open command palette (same as typing /)",
+		description: "Open command palette",
 		handler: async (ctx) => {
-			// Insert "/" character by character to trigger slash command autocomplete
-			// Using handleInput directly (not paste mode) so autocomplete triggers
-			ctx.ui.pasteToEditor("/");
-			// Small delay then trigger autocomplete explicitly
-			setTimeout(() => {
-				// Try to trigger autocomplete by simulating Tab which triggers completion
-				ctx.ui.pasteToEditor("\t");
-			}, 50);
+			// Get available slash commands
+			const commands = ctx.getCommands();
+			
+			// Build simple command list
+			const commandNames = commands.map((c) => c.name);
+			
+			// Show command selector
+			const selected = await ctx.ui.select("Commands", commandNames);
+			
+			if (selected) {
+				// User selected a command - send it
+				ctx.sendUserMessage(`/${selected}`);
+			}
 		},
 	});
 }
