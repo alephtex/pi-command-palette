@@ -3,16 +3,17 @@
  */
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { Container, Text, Input, DynamicBorder } from "@mariozechner/pi-coding-agent";
+import { Container, Text, Input } from "@mariozechner/pi-tui";
+import { DynamicBorder } from "@mariozechner/pi-coding-agent";
 
-// Minimal SelectList implementation for the picker
+// Minimal SelectList implementation
 class SimpleSelectList {
-	items: SelectItem[];
+	items: any[];
 	selectedIndex: number;
 	maxVisible: number;
-	onSelect?: (item: SelectItem) => void;
+	onSelect?: (item: any) => void;
 	
-	constructor(items: SelectItem[], maxVisible: number) {
+	constructor(items: any[], maxVisible: number) {
 		this.items = items;
 		this.selectedIndex = 0;
 		this.maxVisible = maxVisible;
@@ -20,7 +21,7 @@ class SimpleSelectList {
 	
 	setFilter(query: string) {
 		const q = query.toLowerCase();
-		this.items = this.items.filter((item) => 
+		this.items = this.items.filter((item: any) => 
 			item.label.toLowerCase().includes(q)
 		);
 		this.selectedIndex = 0;
@@ -47,31 +48,12 @@ class SimpleSelectList {
 		
 		return lines;
 	}
-	
-	handleInput(key: string): boolean {
-		if (key === "up") {
-			this.selectedIndex = Math.max(0, this.selectedIndex - 1);
-			return true;
-		}
-		if (key === "down") {
-			this.selectedIndex = Math.min(this.items.length - 1, this.selectedIndex + 1);
-			return true;
-		}
-		if (key === "enter") {
-			if (this.items[this.selectedIndex] && this.onSelect) {
-				this.onSelect(this.items[this.selectedIndex]);
-			}
-			return true;
-		}
-		return false;
-	}
 }
 
 export default function (pi: ExtensionAPI) {
 	pi.registerShortcut("ctrl+p", {
 		description: "Open command palette",
 		handler: async (ctx) => {
-			// Define commands manually (since ctx.getCommands isn't available)
 			const commands = [
 				{ name: "agent", description: "Switch to a different agent profile" },
 				{ name: "agents", description: "List all available agent profiles" },
@@ -89,8 +71,7 @@ export default function (pi: ExtensionAPI) {
 				{ name: "abort", description: "Abort current operation" },
 			];
 			
-			// Build items
-			const items: SelectItem[] = commands.map((c) => ({
+			const items = commands.map((c) => ({
 				value: c.name,
 				label: c.name,
 				description: c.description,
@@ -100,7 +81,6 @@ export default function (pi: ExtensionAPI) {
 				const selectList = new SimpleSelectList([...items], 10);
 				let searchQuery = "";
 				
-				// Search input
 				const searchInput = new Input();
 				searchInput.placeholder = "Search commands...";
 				const origHandleInput = searchInput.handleInput.bind(searchInput);
@@ -114,19 +94,14 @@ export default function (pi: ExtensionAPI) {
 					return result;
 				};
 				
-				// Select handler
-				selectList.onSelect = (item) => {
-					done(undefined);
-					pi.sendUserMessage(`/${item.value}`);
-				};
-				
-				// Container
 				const container = new Container();
 				container.addChild(new DynamicBorder((s: string) => theme.fg("accent", s)));
 				container.addChild(new Text(theme.fg("accent", theme.bold("  Command Palette  ")), 1, 0));
 				container.addChild(searchInput);
 				container.addChild(new Text(theme.fg("dim", "  " + "─".repeat(40)), 1, 0));
-				container.addChild(new SimpleListComponent(selectList, theme));
+				container.addChild({
+					render: (w: number) => selectList.renderLines(w, theme),
+				});
 				container.addChild(new Text(theme.fg("dim", "  ↑↓ navigate · enter select · esc close  "), 1, 0));
 				container.addChild(new DynamicBorder((s: string) => theme.fg("accent", s)));
 				
@@ -136,7 +111,6 @@ export default function (pi: ExtensionAPI) {
 					render: (w: number) => container.render(w),
 					invalidate: () => container.invalidate(),
 					handleInput: (data: string) => {
-						// Printable chars → search
 						if (data.length === 1 && data.charCodeAt(0) >= 32) {
 							searchInput.handleInput(data);
 							searchQuery = searchInput.value;
@@ -144,15 +118,13 @@ export default function (pi: ExtensionAPI) {
 							tui.requestRender();
 							return;
 						}
-						
-						// Navigation
 						if (data === "up") {
-							selectList.handleInput("up");
+							selectList.selectedIndex = Math.max(0, selectList.selectedIndex - 1);
 							tui.requestRender();
 							return;
 						}
 						if (data === "down") {
-							selectList.handleInput("down");
+							selectList.selectedIndex = Math.min(selectList.items.length - 1, selectList.selectedIndex + 1);
 							tui.requestRender();
 							return;
 						}
@@ -180,19 +152,4 @@ export default function (pi: ExtensionAPI) {
 			}, { overlay: true });
 		},
 	});
-}
-
-// Helper component to render the list
-class SimpleListComponent {
-	selectList: SimpleSelectList;
-	theme: any;
-	
-	constructor(selectList: SimpleSelectList, theme: any) {
-		this.selectList = selectList;
-		this.theme = theme;
-	}
-	
-	render(width: number): string[] {
-		return this.selectList.renderLines(width, this.theme);
-	}
 }
